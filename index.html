@@ -337,7 +337,6 @@
     </header>
     <main class="main" id="app"></main>
 
-    <script src="/sampleQuestions.js"></script>
     <script type="module">
       import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
 
@@ -368,6 +367,7 @@
       };
 
       const app = document.querySelector("#app");
+      console.log("AI PDF Study Helper loaded. Browser fallback generator is embedded in index.html.");
       render();
 
       function render() {
@@ -570,23 +570,34 @@
         state.debug = "";
         render();
 
+        const payload = {
+          text: state.pdfText,
+          difficulty: state.difficulty
+        };
+        console.log("문제 생성 요청 시작:", payload);
+
         try {
           const response = await fetch("/api/generate-questions", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              text: state.pdfText,
-              difficulty: state.difficulty
-            })
+            body: JSON.stringify(payload)
           });
 
           const rawText = await response.text();
+          console.log("/api/generate-questions raw response:", {
+            ok: response.ok,
+            status: response.status,
+            body: rawText
+          });
+
           let data;
           try {
             data = JSON.parse(rawText);
           } catch (parseError) {
             throw new Error(`API 응답을 JSON으로 읽지 못했습니다. 상태: ${response.status}, 응답: ${rawText.slice(0, 300)}`);
           }
+
+          console.log("/api/generate-questions parsed response:", data);
 
           if (!response.ok) {
             throw new Error(data.error || `API 상태 오류: ${response.status}`);
@@ -599,7 +610,7 @@
           enterQuiz(data.questions, data.source === "sample" ? data.warning || "샘플 문제로 대체 생성했습니다." : "AI가 PDF 기반 문제를 생성했습니다.");
         } catch (error) {
           console.error("문제 생성 요청 실패, 샘플 문제로 대체합니다:", error);
-          const fallbackQuestions = window.SampleQuestions.makeSampleQuestions(state.difficulty || "중", state.pdfText);
+          const fallbackQuestions = makeFallbackQuestions(state.difficulty || "중", state.pdfText);
           enterQuiz(fallbackQuestions, "문제 생성 API 호출에 실패해 샘플 문제 17개로 대체했습니다.", `문제 생성 오류: ${error.message}`);
         } finally {
           state.loading = false;
@@ -719,7 +730,7 @@
         } catch (error) {
           console.error("서술형 채점 실패, 키워드 채점으로 대체합니다:", error);
           state.debug = `서술형 채점 오류: ${error.message}`;
-          return window.SampleQuestions.keywordEssayGrade(question, answer);
+          return keywordFallbackGrade(question, answer);
         }
       }
 
@@ -842,6 +853,86 @@ ${details}
           saveMessage: ""
         });
         render();
+      }
+
+      function makeFallbackQuestions(difficulty, sourceText) {
+        if (window.SampleQuestions?.makeSampleQuestions) {
+          return window.SampleQuestions.makeSampleQuestions(difficulty, sourceText);
+        }
+
+        console.error("sampleQuestions.js가 로드되지 않아 index.html 내부 샘플 생성기를 사용합니다.");
+        const concepts = ["핵심 개념", "정의와 특징", "원리", "비교", "적용", "절차", "사례", "한계", "자료 해석", "종합 이해", "실전 판단", "개념 연결"];
+        const topic = String(sourceText || "").replace(/\s+/g, " ").trim().slice(0, 28) || "업로드한 강의자료";
+        const questions = [];
+
+        for (let index = 0; index < 5; index += 1) {
+          questions.push({
+            id: `OX-${index + 1}`,
+            type: "OX",
+            prompt: `${topic} 학습에서 ${concepts[index]}을 설명할 때, 근거 없이 결론만 암기하는 것은 충분한 복습 전략이다.`,
+            choices: ["O", "X"],
+            answer: index % 2 === 0 ? "X" : "O",
+            explanation: "핵심 개념은 정의, 근거, 예시를 함께 연결해야 오래 기억되고 응용할 수 있습니다.",
+            concept: concepts[index],
+            difficulty,
+            keywords: [concepts[index], "정의", "근거"]
+          });
+        }
+
+        for (let index = 0; index < 10; index += 1) {
+          const concept = concepts[(index + 2) % concepts.length];
+          const baseChoices = [
+            `${concept}을 정의, 조건, 예시와 함께 설명한다.`,
+            "본문의 모든 문장을 순서대로 외우는 데만 집중한다.",
+            "관련 없는 사례를 중심으로 결론을 만든다.",
+            "용어의 이름만 보고 세부 의미를 생략한다."
+          ];
+          questions.push({
+            id: `MC-${index + 1}`,
+            type: "MULTIPLE_CHOICE",
+            prompt: `개념 이해와 응용을 확인하기 위한 ${concept} 복습 방법으로 가장 적절한 것은 무엇인가?`,
+            choices: baseChoices.slice(index % 4).concat(baseChoices.slice(0, index % 4)),
+            answer: baseChoices[0],
+            explanation: `${concept}은 정의뿐 아니라 조건, 예시, 반례를 함께 확인해야 실제 문제에서 활용할 수 있습니다.`,
+            concept,
+            difficulty,
+            keywords: [concept, "예시", "조건"]
+          });
+        }
+
+        for (let index = 0; index < 2; index += 1) {
+          const concept = concepts[(index + 8) % concepts.length];
+          questions.push({
+            id: `SA-${index + 1}`,
+            type: "SHORT_ANSWER",
+            prompt: `${topic}에서 ${concept}이 중요한 이유를 핵심 용어 2개 이상을 포함해 설명하세요.`,
+            choices: [],
+            answer: `${concept}은 핵심 개념을 실제 사례에 적용하고 조건과 한계를 판단하는 기준이 되기 때문에 중요합니다.`,
+            explanation: `좋은 답안은 ${concept}, 조건, 사례, 한계 중 여러 요소를 연결해 설명합니다.`,
+            concept,
+            difficulty,
+            keywords: [concept, "조건", "사례", "한계"]
+          });
+        }
+
+        return questions;
+      }
+
+      function keywordFallbackGrade(question, answer) {
+        if (window.SampleQuestions?.keywordEssayGrade) {
+          return window.SampleQuestions.keywordEssayGrade(question, answer);
+        }
+
+        const keywords = question.keywords && question.keywords.length ? question.keywords : question.answer.split(/\s+/).slice(0, 4);
+        const normalizedAnswer = normalize(answer);
+        const hits = keywords.filter((keyword) => normalizedAnswer.includes(normalize(keyword))).length;
+        const score = Math.min(10, Math.round((hits / Math.max(1, keywords.length)) * 10));
+
+        return {
+          score,
+          isCorrect: score >= 6,
+          feedback: score >= 6 ? "핵심 키워드가 충분히 포함되었습니다." : "핵심 키워드와 근거가 부족합니다."
+        };
       }
 
       function setVisibleError(message, debug) {
