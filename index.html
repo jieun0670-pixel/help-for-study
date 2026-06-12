@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI PDF Study Helper</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module"></script>
     <style>
       :root {
         --bg: #f6f8fb;
@@ -18,51 +17,317 @@
         --good: #16803c;
         --bad: #d13535;
       }
-      * { box-sizing: border-box; }
-      body { margin: 0; background: var(--bg); color: var(--ink); font-family: Arial, "Noto Sans KR", sans-serif; }
-      button, input, textarea { font: inherit; }
-      button { border: 0; border-radius: 8px; background: var(--brand); color: white; cursor: pointer; font-weight: 700; padding: 12px 16px; }
-      button:hover { background: var(--brand-dark); }
-      button:disabled { cursor: not-allowed; opacity: 0.55; }
-      .topbar { align-items: center; background: white; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; padding: 16px clamp(18px, 5vw, 56px); position: sticky; top: 0; z-index: 5; }
-      .brand { font-size: 20px; font-weight: 800; }
-      .stepper { color: var(--muted); font-size: 14px; }
-      .main { margin: 0 auto; max-width: 1060px; padding: 34px clamp(16px, 4vw, 42px) 60px; }
-      .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: clamp(22px, 4vw, 38px); }
-      h1 { font-size: clamp(30px, 5vw, 52px); line-height: 1.08; margin: 0 0 14px; }
-      h2 { margin-top: 28px; }
-      .lead { color: var(--muted); font-size: 18px; line-height: 1.7; margin: 0 0 28px; max-width: 760px; }
-      .uploadBox { align-items: center; border: 2px dashed #aab8cf; border-radius: 8px; display: flex; flex-direction: column; gap: 14px; justify-content: center; min-height: 260px; padding: 30px; text-align: center; }
-      .uploadButton { display: inline-flex; position: relative; }
-      .uploadButton input { inset: 0; opacity: 0; position: absolute; }
-      .muted { color: var(--muted); }
-      .error, .success { border-radius: 8px; margin-top: 16px; padding: 12px 14px; }
-      .error { background: #fff1f1; border: 1px solid #ffc6c6; color: var(--bad); }
-      .success { background: #effaf2; border: 1px solid #bae7c6; color: var(--good); }
-      .cards { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 24px 0; }
-      .difficultyCard { background: white; border: 1px solid var(--line); color: var(--ink); min-height: 180px; padding: 20px; text-align: left; }
-      .difficultyCard:hover, .difficultyCard.selected { background: var(--soft); border-color: var(--brand); }
-      .difficultyCard strong { display: block; font-size: 22px; margin-bottom: 10px; }
-      .questionMeta, .reportGrid, .actions { display: flex; flex-wrap: wrap; gap: 10px; }
-      .pill { background: var(--soft); border-radius: 999px; color: #1f4da5; font-size: 13px; font-weight: 700; padding: 7px 10px; }
-      .questionCard { border: 1px solid var(--line); border-radius: 8px; margin: 24px 0; padding: 24px; }
-      .questionText { font-size: 22px; font-weight: 800; line-height: 1.45; margin: 16px 0 18px; }
-      .optionGrid { display: grid; gap: 10px; }
-      .option { background: white; border: 1px solid var(--line); color: var(--ink); text-align: left; }
-      .option.selected { background: var(--brand); border-color: var(--brand); color: white; }
-      textarea { border: 1px solid var(--line); border-radius: 8px; min-height: 160px; padding: 14px; resize: vertical; width: 100%; }
-      .navRow { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
-      .secondary { background: #e8edf5; color: var(--ink); }
-      .secondary:hover { background: #d7deea; }
-      .stat { background: white; border: 1px solid var(--line); border-radius: 8px; flex: 1 1 160px; padding: 16px; }
-      .stat b { display: block; font-size: 26px; margin-top: 6px; }
-      .reviewItem { background: white; border: 1px solid var(--line); border-radius: 8px; margin-top: 12px; padding: 16px; }
-      .reviewItem.correct { border-left: 5px solid var(--good); }
-      .reviewItem.wrong { border-left: 5px solid var(--bad); }
-      .feedbackList { line-height: 1.7; padding-left: 20px; }
-      .spinner { animation: spin 0.8s linear infinite; border: 3px solid #b8c7e6; border-top-color: var(--brand); border-radius: 50%; display: inline-block; height: 18px; margin-right: 8px; vertical-align: middle; width: 18px; }
-      @keyframes spin { to { transform: rotate(360deg); } }
-      @media (max-width: 760px) { .topbar, .navRow { align-items: flex-start; flex-direction: column; } .cards { grid-template-columns: 1fr; } }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Arial, "Noto Sans KR", sans-serif;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        border-radius: 8px;
+        background: var(--brand);
+        color: white;
+        cursor: pointer;
+        font-weight: 700;
+        padding: 12px 16px;
+      }
+
+      button:hover {
+        background: var(--brand-dark);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      .topbar {
+        align-items: center;
+        background: white;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        padding: 16px clamp(18px, 5vw, 56px);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+
+      .brand {
+        font-size: 20px;
+        font-weight: 800;
+      }
+
+      .stepper {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .main {
+        margin: 0 auto;
+        max-width: 1060px;
+        padding: 34px clamp(16px, 4vw, 42px) 60px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: clamp(22px, 4vw, 38px);
+      }
+
+      h1 {
+        font-size: clamp(30px, 5vw, 52px);
+        line-height: 1.08;
+        margin: 0 0 14px;
+      }
+
+      h2 {
+        margin-top: 28px;
+      }
+
+      .lead {
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.7;
+        margin: 0 0 28px;
+        max-width: 760px;
+      }
+
+      .uploadBox {
+        align-items: center;
+        border: 2px dashed #aab8cf;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        justify-content: center;
+        min-height: 260px;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .uploadButton {
+        display: inline-flex;
+        position: relative;
+      }
+
+      .uploadButton input {
+        inset: 0;
+        opacity: 0;
+        position: absolute;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .error,
+      .success,
+      .notice {
+        border-radius: 8px;
+        margin-top: 16px;
+        padding: 12px 14px;
+        white-space: pre-wrap;
+      }
+
+      .error {
+        background: #fff1f1;
+        border: 1px solid #ffc6c6;
+        color: var(--bad);
+      }
+
+      .success {
+        background: #effaf2;
+        border: 1px solid #bae7c6;
+        color: var(--good);
+      }
+
+      .notice {
+        background: #f2f5fb;
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+
+      .cards {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 24px 0;
+      }
+
+      .difficultyCard {
+        background: white;
+        border: 1px solid var(--line);
+        color: var(--ink);
+        min-height: 180px;
+        padding: 20px;
+        text-align: left;
+      }
+
+      .difficultyCard:hover,
+      .difficultyCard.selected {
+        background: var(--soft);
+        border-color: var(--brand);
+      }
+
+      .difficultyCard strong {
+        display: block;
+        font-size: 22px;
+        margin-bottom: 10px;
+      }
+
+      .questionMeta,
+      .reportGrid,
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .pill {
+        background: var(--soft);
+        border-radius: 999px;
+        color: #1f4da5;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 7px 10px;
+      }
+
+      .questionCard {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin: 24px 0;
+        padding: 24px;
+      }
+
+      .questionText {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.45;
+        margin: 16px 0 18px;
+      }
+
+      .optionGrid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .option {
+        background: white;
+        border: 1px solid var(--line);
+        color: var(--ink);
+        text-align: left;
+      }
+
+      .option.selected {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: white;
+      }
+
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 160px;
+        padding: 14px;
+        resize: vertical;
+        width: 100%;
+      }
+
+      .navRow {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+      }
+
+      .secondary {
+        background: #e8edf5;
+        color: var(--ink);
+      }
+
+      .secondary:hover {
+        background: #d7deea;
+      }
+
+      .stat {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        flex: 1 1 160px;
+        padding: 16px;
+      }
+
+      .stat b {
+        display: block;
+        font-size: 26px;
+        margin-top: 6px;
+      }
+
+      .reviewItem {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-top: 12px;
+        padding: 16px;
+      }
+
+      .reviewItem.correct {
+        border-left: 5px solid var(--good);
+      }
+
+      .reviewItem.wrong {
+        border-left: 5px solid var(--bad);
+      }
+
+      .feedbackList {
+        line-height: 1.7;
+        padding-left: 20px;
+      }
+
+      .spinner {
+        animation: spin 0.8s linear infinite;
+        border: 3px solid #b8c7e6;
+        border-radius: 50%;
+        border-top-color: var(--brand);
+        display: inline-block;
+        height: 18px;
+        margin-right: 8px;
+        vertical-align: middle;
+        width: 18px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 760px) {
+        .topbar,
+        .navRow {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -72,8 +337,10 @@
     </header>
     <main class="main" id="app"></main>
 
+    <script src="/sampleQuestions.js"></script>
     <script type="module">
       import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+
       pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
       const state = {
@@ -90,13 +357,14 @@
         loading: false,
         status: "",
         error: "",
+        debug: "",
         saveMessage: ""
       };
 
       const difficultyCopy = {
-        "하": "핵심 개념과 정의 중심의 쉬운 문제를 생성합니다. 처음 복습하는 학생에게 좋습니다.",
-        "중": "개념 이해와 간단한 응용 중심의 문제를 생성합니다. 단순 암기보다 이해 확인에 맞춥니다.",
-        "상": "실전형과 심화 문제 중심으로 생성합니다. 시험 대비에 활용하기 좋습니다."
+        "하": "핵심 개념과 정의 중심의 쉬운 문제를 생성합니다. 처음 복습하는 학생도 풀 수 있게 구성합니다.",
+        "중": "개념 이해와 간단한 응용 중심의 문제를 생성합니다. 단순 암기보다 이해 여부를 확인합니다.",
+        "상": "실전형 문제와 심화 문제 중심으로 생성합니다. 시험 대비용으로 조금 더 깊이 있게 구성합니다."
       };
 
       const app = document.querySelector("#app");
@@ -112,13 +380,13 @@
       function renderUpload() {
         app.innerHTML = `<section class="panel">
           <h1>PDF 강의자료를 문제와 리포트로 바꾸세요</h1>
-          <p class="lead">강의자료를 업로드하면 AI가 내용을 분석하고 난이도에 맞춰 O/X, 객관식, 서술형 문제를 생성합니다. 풀이 후에는 점수, 해설, 풀이 시간, 취약 개념, 학습 피드백까지 확인할 수 있습니다.</p>
+          <p class="lead">강의자료를 업로드하면 PDF 텍스트를 추출하고, 선택한 난이도에 맞춰 O/X, 객관식, 서술형 문제 17개를 생성합니다.</p>
           <div class="uploadBox">
             <label class="uploadButton">
               <button type="button" ${state.loading ? "disabled" : ""}>${state.loading ? `<span class="spinner"></span>업로드 분석 중` : "PDF 업로드"}</button>
               <input id="pdfInput" accept="application/pdf,.pdf" type="file" />
             </label>
-            <span class="muted">${state.fileName || "PDF 파일만 업로드할 수 있습니다."}</span>
+            <span class="muted">${state.fileName ? escapeHtml(state.fileName) : "PDF 파일만 업로드할 수 있습니다."}</span>
           </div>
           ${messageHtml()}
         </section>`;
@@ -128,35 +396,55 @@
       function renderDifficulty() {
         app.innerHTML = `<section class="panel">
           <h1>난이도 선택</h1>
-          <p class="lead">${escapeHtml(state.fileName)} 분석이 끝났습니다. 원하는 난이도를 선택하면 총 17개 문제가 생성됩니다.</p>
-          <div class="cards">${Object.entries(difficultyCopy).map(([level, text]) => `<button class="difficultyCard ${state.difficulty === level ? "selected" : ""}" data-level="${level}"><strong>${level}</strong>${text}</button>`).join("")}</div>
+          <p class="lead">${escapeHtml(state.fileName || "PDF")} 분석이 끝났습니다. 원하는 난이도를 선택하면 문제 생성 버튼을 누를 수 있습니다.</p>
+          <div class="cards">
+            ${Object.entries(difficultyCopy)
+              .map(
+                ([level, text]) =>
+                  `<button class="difficultyCard ${state.difficulty === level ? "selected" : ""}" data-level="${level}"><strong>${level}</strong>${escapeHtml(text)}</button>`
+              )
+              .join("")}
+          </div>
           <div class="actions">
             <button id="generateButton" ${!state.difficulty || state.loading ? "disabled" : ""}>${state.loading ? `<span class="spinner"></span>문제 생성 중` : "문제 생성"}</button>
-            ${state.error ? `<button id="retryButton" class="secondary">다시 시도</button>` : ""}
           </div>
           ${messageHtml()}
         </section>`;
-        document.querySelectorAll("[data-level]").forEach((button) => button.addEventListener("click", () => { state.difficulty = button.dataset.level; state.error = ""; render(); }));
+
+        document.querySelectorAll("[data-level]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.difficulty = button.dataset.level;
+            state.error = "";
+            state.debug = "";
+            render();
+          });
+        });
         document.querySelector("#generateButton")?.addEventListener("click", generateQuestions);
-        document.querySelector("#retryButton")?.addEventListener("click", generateQuestions);
       }
 
       function renderQuiz() {
         const question = state.questions[state.currentIndex];
         const answeredCount = state.questions.filter((item) => state.answers[item.id]?.trim()).length;
+
         app.innerHTML = `<section class="panel">
           <h1>문제 풀이</h1>
-          <p class="lead">한 번에 한 문제씩 풀어 보세요. 답안은 자동으로 보관됩니다.</p>
+          <p class="lead">한 번에 하나씩 풀어 보세요. 선택한 답안은 화면 이동 후에도 유지됩니다.</p>
           ${messageHtml()}
           <div class="questionCard">
             <div class="questionMeta">
               <span class="pill">${state.currentIndex + 1} / ${state.questions.length}</span>
-              <span class="pill">${question.type}</span>
+              <span class="pill">${typeLabel(question.type)}</span>
               <span class="pill">${escapeHtml(question.concept)}</span>
-              <span class="pill">난이도 ${question.difficulty}</span>
+              <span class="pill">난이도 ${escapeHtml(question.difficulty)}</span>
             </div>
             <div class="questionText">${escapeHtml(question.prompt)}</div>
-            ${question.type === "SHORT_ANSWER" ? `<textarea id="essayAnswer" placeholder="답안을 입력하세요.">${escapeHtml(state.answers[question.id] || "")}</textarea>` : `<div class="optionGrid">${question.choices.map((choice) => `<button class="option ${state.answers[question.id] === choice ? "selected" : ""}" data-choice="${escapeAttr(choice)}">${escapeHtml(choice)}</button>`).join("")}</div>`}
+            ${
+              question.type === "SHORT_ANSWER"
+                ? `<textarea id="essayAnswer" placeholder="답안을 입력하세요.">${escapeHtml(state.answers[question.id] || "")}</textarea>`
+                : `<div class="optionGrid">${question.choices
+                    .map((choice) => `<button class="option ${state.answers[question.id] === choice ? "selected" : ""}" data-choice="${escapeAttr(choice)}">${escapeHtml(choice)}</button>`)
+                    .join("")}</div>`
+            }
           </div>
           <div class="navRow">
             <div class="actions">
@@ -169,8 +457,17 @@
             </div>
           </div>
         </section>`;
-        document.querySelectorAll("[data-choice]").forEach((button) => button.addEventListener("click", () => { state.answers[question.id] = button.dataset.choice; state.error = ""; render(); }));
-        document.querySelector("#essayAnswer")?.addEventListener("input", (event) => { state.answers[question.id] = event.target.value; });
+
+        document.querySelectorAll("[data-choice]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.answers[question.id] = button.dataset.choice;
+            state.error = "";
+            render();
+          });
+        });
+        document.querySelector("#essayAnswer")?.addEventListener("input", (event) => {
+          state.answers[question.id] = event.target.value;
+        });
         document.querySelector("#prevButton").addEventListener("click", () => moveQuestion(-1));
         document.querySelector("#nextButton").addEventListener("click", () => moveQuestion(1));
         document.querySelector("#submitButton").addEventListener("click", submitQuiz);
@@ -195,47 +492,57 @@
             <button id="downloadReport">리포트 다운로드</button>
             <button class="secondary" id="restartButton">새 PDF로 시작</button>
           </div>
-          ${state.saveMessage ? `<div class="${state.saveMessage.includes("실패") ? "error" : "success"}">${state.saveMessage}</div>` : ""}
+          ${state.saveMessage ? `<div class="${state.saveMessage.includes("실패") ? "error" : "success"}">${escapeHtml(state.saveMessage)}</div>` : ""}
+          ${messageHtml()}
           <h2>문제별 해설</h2>
-          ${report.results.map((result, index) => {
-            const question = report.questions.find((item) => item.id === result.questionId);
-            return `<article class="reviewItem ${result.isCorrect ? "correct" : "wrong"}">
-              <strong>${index + 1}. ${result.isCorrect ? "정답" : "오답"} · ${result.earnedPoints}/${result.maxPoints}점 · ${result.elapsedSeconds}초</strong>
-              <p>${escapeHtml(question.prompt)}</p>
-              <p>내 답: ${escapeHtml(report.answers[result.questionId] || "-")}</p>
-              <p>정답: ${escapeHtml(question.answer)}</p>
-              <p>해설: ${escapeHtml(question.explanation)}</p>
-              <p>분석: ${escapeHtml(result.analysis)}</p>
-              ${result.essayFeedback ? `<p>서술형 피드백: ${escapeHtml(result.essayFeedback)}</p>` : ""}
-            </article>`;
-          }).join("")}
+          ${report.results
+            .map((result, index) => {
+              const question = report.questions.find((item) => item.id === result.questionId);
+              return `<article class="reviewItem ${result.isCorrect ? "correct" : "wrong"}">
+                <strong>${index + 1}. ${result.isCorrect ? "정답" : "오답"} · ${result.earnedPoints}/${result.maxPoints}점 · ${result.elapsedSeconds}초</strong>
+                <p>${escapeHtml(question.prompt)}</p>
+                <p>내 답: ${escapeHtml(report.answers[result.questionId] || "-")}</p>
+                <p>정답: ${escapeHtml(question.answer)}</p>
+                <p>해설: ${escapeHtml(question.explanation)}</p>
+                <p>분석: ${escapeHtml(result.analysis)}</p>
+                ${result.essayFeedback ? `<p>서술형 피드백: ${escapeHtml(result.essayFeedback)}</p>` : ""}
+              </article>`;
+            })
+            .join("")}
         </section>`;
+
         document.querySelector("#downloadQuestions").addEventListener("click", () => downloadText("questions.txt", questionsToText(report.questions)));
         document.querySelector("#downloadReport").addEventListener("click", () => downloadText("study-report.txt", reportToText(report)));
-        document.querySelector("#restartButton").addEventListener("click", () => resetApp());
+        document.querySelector("#restartButton").addEventListener("click", resetApp);
       }
 
       async function handlePdfUpload(file) {
         state.error = "";
         state.status = "";
+        state.debug = "";
+
         if (!file) return;
         if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-          state.error = "PDF 파일만 업로드할 수 있어요. 강의자료 PDF를 다시 선택해 주세요.";
+          setVisibleError("PDF 파일만 업로드할 수 있어요. 강의자료 PDF를 다시 선택해 주세요.", "파일 형식 검증 실패");
           render();
           return;
         }
+
         state.loading = true;
         state.fileName = file.name;
         render();
+
         try {
           const text = await extractPdfText(file);
-          if (!text.trim()) throw new Error("No PDF text found");
-          state.pdfText = text;
+          state.pdfText = text.trim() || `${file.name} 파일에서 텍스트를 추출하지 못했습니다.`;
           state.status = "PDF 분석이 완료되었습니다. 이제 난이도를 선택해 주세요.";
           state.step = "difficulty";
         } catch (error) {
-          console.error(error);
-          state.error = "PDF 분석 중 문제가 생겼습니다. 텍스트가 포함된 PDF인지 확인한 뒤 다시 시도해 주세요.";
+          console.error("PDF 분석 실패:", error);
+          state.pdfText = `${file.name} 파일 텍스트 추출 실패`;
+          state.status = "PDF 텍스트 추출에 실패했지만 샘플 문제 생성으로 계속 진행할 수 있습니다.";
+          state.debug = `PDF 분석 오류: ${error.message}`;
+          state.step = "difficulty";
         } finally {
           state.loading = false;
           render();
@@ -246,41 +553,69 @@
         const buffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
         const pages = [];
+
         for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
           const page = await pdf.getPage(pageNumber);
           const content = await page.getTextContent();
           pages.push(content.items.map((item) => item.str).join(" "));
         }
-        return pages.join("\\n");
+
+        return pages.join("\n");
       }
 
       async function generateQuestions() {
         state.loading = true;
         state.error = "";
         state.status = "";
+        state.debug = "";
         render();
+
         try {
-          const response = await fetch("/api/generate", {
+          const response = await fetch("/api/generate-questions", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: state.pdfText, difficulty: state.difficulty })
+            body: JSON.stringify({
+              text: state.pdfText,
+              difficulty: state.difficulty
+            })
           });
-          if (!response.ok) throw new Error("Question generation failed");
-          const data = await response.json();
-          state.questions = data.questions;
-          state.answers = {};
-          state.elapsedByQuestion = {};
-          state.currentIndex = 0;
-          state.questionStartedAt = Date.now();
-          state.step = "quiz";
-          state.status = data.source === "sample" ? "API 키가 없어 샘플 문제로 진행합니다." : "AI가 PDF 기반 문제를 생성했습니다.";
+
+          const rawText = await response.text();
+          let data;
+          try {
+            data = JSON.parse(rawText);
+          } catch (parseError) {
+            throw new Error(`API 응답을 JSON으로 읽지 못했습니다. 상태: ${response.status}, 응답: ${rawText.slice(0, 300)}`);
+          }
+
+          if (!response.ok) {
+            throw new Error(data.error || `API 상태 오류: ${response.status}`);
+          }
+
+          if (!Array.isArray(data.questions) || data.questions.length !== 17) {
+            throw new Error(`API가 17개 문제가 아닌 값을 반환했습니다. 받은 개수: ${data.questions?.length || 0}`);
+          }
+
+          enterQuiz(data.questions, data.source === "sample" ? data.warning || "샘플 문제로 대체 생성했습니다." : "AI가 PDF 기반 문제를 생성했습니다.");
         } catch (error) {
-          console.error(error);
-          state.error = "문제 생성에 실패했습니다. 잠시 뒤 다시 시도해 주세요.";
+          console.error("문제 생성 요청 실패, 샘플 문제로 대체합니다:", error);
+          const fallbackQuestions = window.SampleQuestions.makeSampleQuestions(state.difficulty || "중", state.pdfText);
+          enterQuiz(fallbackQuestions, "문제 생성 API 호출에 실패해 샘플 문제 17개로 대체했습니다.", `문제 생성 오류: ${error.message}`);
         } finally {
           state.loading = false;
           render();
         }
+      }
+
+      function enterQuiz(questions, statusMessage, debugMessage = "") {
+        state.questions = questions;
+        state.answers = {};
+        state.elapsedByQuestion = {};
+        state.currentIndex = 0;
+        state.questionStartedAt = Date.now();
+        state.step = "quiz";
+        state.status = statusMessage;
+        state.debug = debugMessage;
       }
 
       function recordElapsed(questionId) {
@@ -289,6 +624,9 @@
 
       function moveQuestion(direction) {
         const question = state.questions[state.currentIndex];
+        if (question.type === "SHORT_ANSWER") {
+          state.answers[question.id] = document.querySelector("#essayAnswer")?.value || "";
+        }
         recordElapsed(question.id);
         state.currentIndex = Math.min(state.questions.length - 1, Math.max(0, state.currentIndex + direction));
         state.questionStartedAt = Date.now();
@@ -301,9 +639,10 @@
         if (question.type === "SHORT_ANSWER") {
           state.answers[question.id] = document.querySelector("#essayAnswer")?.value || "";
         }
+
         const unanswered = state.questions.filter((item) => !state.answers[item.id]?.trim());
         if (unanswered.length) {
-          state.error = `아직 답하지 않은 문제가 ${unanswered.length}개 있습니다. 모든 문제에 답한 뒤 채점해 주세요.`;
+          setVisibleError(`아직 답하지 않은 문제가 ${unanswered.length}개 있습니다. 모든 문제에 답한 뒤 채점해 주세요.`, "미응답 문항 존재");
           render();
           return;
         }
@@ -311,11 +650,14 @@
         recordElapsed(question.id);
         state.loading = true;
         state.error = "";
+        state.debug = "";
         render();
+
         const results = [];
         for (const item of state.questions) {
           const answer = state.answers[item.id] || "";
           const elapsedSeconds = Math.max(1, state.elapsedByQuestion[item.id] || 1);
+
           if (item.type === "SHORT_ANSWER") {
             const grade = await gradeEssay(item, answer);
             results.push({
@@ -343,6 +685,7 @@
         const earned = results.reduce((sum, item) => sum + item.earnedPoints, 0);
         const max = results.reduce((sum, item) => sum + item.maxPoints, 0);
         const weakConcepts = getWeakConcepts(results);
+
         state.report = {
           id: crypto.randomUUID(),
           createdAt: new Date().toLocaleString("ko-KR"),
@@ -357,36 +700,48 @@
           answers: state.answers,
           results
         };
+
         state.step = "report";
         state.loading = false;
         render();
-        await saveReport(state.report);
+        await saveResult(state.report);
       }
 
       async function gradeEssay(question, answer) {
-        const response = await fetch("/api/grade-essay", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question, answer })
-        });
-        if (!response.ok) throw new Error("Essay grading failed");
-        return response.json();
+        try {
+          const response = await fetch("/api/grade-essay", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question, answer })
+          });
+          if (!response.ok) throw new Error(`서술형 채점 API 오류: ${response.status}`);
+          return await response.json();
+        } catch (error) {
+          console.error("서술형 채점 실패, 키워드 채점으로 대체합니다:", error);
+          state.debug = `서술형 채점 오류: ${error.message}`;
+          return window.SampleQuestions.keywordEssayGrade(question, answer);
+        }
       }
 
-      async function saveReport(report) {
+      async function saveResult(report) {
         state.saveMessage = "Firebase Realtime Database에 결과를 저장하는 중입니다.";
         render();
+
         try {
-          const response = await fetch("/api/save-report", {
+          const response = await fetch("/api/save-result", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(report)
           });
-          if (!response.ok) throw new Error("Save failed");
+          const data = await response.json();
+          if (!response.ok || !data.ok) throw new Error(data.error || `저장 API 오류: ${response.status}`);
           state.saveMessage = "Firebase Realtime Database에 결과가 저장되었습니다.";
-        } catch {
+        } catch (error) {
+          console.error("Firebase 저장 실패:", error);
           state.saveMessage = "Firebase 저장에 실패했습니다. 리포트 다운로드는 계속 사용할 수 있습니다.";
+          state.debug = `Firebase 저장 오류: ${error.message}`;
         }
+
         render();
       }
 
@@ -398,7 +753,10 @@
             counts[question.concept] = (counts[question.concept] || 0) + 1;
           }
         }
-        return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([concept]) => concept);
+        return Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([concept]) => concept);
       }
 
       function analyzeQuestion(elapsedSeconds, correct) {
@@ -419,6 +777,52 @@
         return feedback;
       }
 
+      function questionsToText(questions) {
+        return questions
+          .map((question, index) => {
+            const choices = question.choices.length ? `\n보기: ${question.choices.join(" / ")}` : "";
+            return `${index + 1}. [${typeLabel(question.type)}] ${question.prompt}${choices}\n정답: ${question.answer}\n해설: ${question.explanation}\n관련 개념: ${question.concept}\n난이도: ${question.difficulty}`;
+          })
+          .join("\n\n");
+      }
+
+      function reportToText(report) {
+        const details = report.results
+          .map((result, index) => {
+            const question = report.questions.find((item) => item.id === result.questionId);
+            return `${index + 1}. ${question.prompt}\n내 답: ${report.answers[result.questionId] || "-"}\n정답: ${question.answer}\n결과: ${result.isCorrect ? "정답" : "오답"} (${result.earnedPoints}/${result.maxPoints})\n분석: ${result.analysis}\n해설: ${question.explanation}`;
+          })
+          .join("\n\n");
+
+        return `AI PDF 학습 리포트
+생성일: ${report.createdAt}
+난이도: ${report.difficulty}
+총점: ${report.score}
+정답: ${report.correctCount}
+오답: ${report.wrongCount}
+전체 풀이 시간: ${report.totalElapsedSeconds}초
+취약 개념: ${report.weakConcepts.length ? report.weakConcepts.join(", ") : "없음"}
+
+학습 피드백
+${report.feedback.map((item) => `- ${item}`).join("\n")}
+
+문제별 결과
+${details}
+`;
+      }
+
+      function downloadText(filename, content) {
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
       function resetApp() {
         Object.assign(state, {
           step: "upload",
@@ -434,44 +838,30 @@
           loading: false,
           status: "",
           error: "",
+          debug: "",
           saveMessage: ""
         });
         render();
       }
 
-      function questionsToText(questions) {
-        return questions.map((question, index) => {
-          const choices = question.choices.length ? `\\n보기: ${question.choices.join(" / ")}` : "";
-          return `${index + 1}. [${question.type}] ${question.prompt}${choices}\\n정답: ${question.answer}\\n해설: ${question.explanation}\\n관련 개념: ${question.concept}\\n난이도: ${question.difficulty}`;
-        }).join("\\n\\n");
-      }
-
-      function reportToText(report) {
-        const details = report.results.map((result, index) => {
-          const question = report.questions.find((item) => item.id === result.questionId);
-          return `${index + 1}. ${question.prompt}\\n내 답: ${report.answers[result.questionId] || "-"}\\n정답: ${question.answer}\\n결과: ${result.isCorrect ? "정답" : "오답"} (${result.earnedPoints}/${result.maxPoints})\\n분석: ${result.analysis}\\n해설: ${question.explanation}`;
-        }).join("\\n\\n");
-        return `AI PDF 학습 리포트\\n생성일: ${report.createdAt}\\n난이도: ${report.difficulty}\\n총점: ${report.score}\\n정답: ${report.correctCount}\\n오답: ${report.wrongCount}\\n전체 풀이 시간: ${report.totalElapsedSeconds}초\\n취약 개념: ${report.weakConcepts.length ? report.weakConcepts.join(", ") : "없음"}\\n\\n학습 피드백\\n${report.feedback.map((item) => `- ${item}`).join("\\n")}\\n\\n문제별 결과\\n${details}\\n`;
-      }
-
-      function downloadText(filename, content) {
-        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+      function setVisibleError(message, debug) {
+        state.error = message;
+        state.debug = debug || "";
+        if (debug) console.error(debug);
       }
 
       function messageHtml() {
-        return `${state.status ? `<div class="success">${escapeHtml(state.status)}</div>` : ""}${state.error ? `<div class="error">${escapeHtml(state.error)}</div>` : ""}`;
+        return `${state.status ? `<div class="success">${escapeHtml(state.status)}</div>` : ""}${state.error ? `<div class="error">${escapeHtml(state.error)}</div>` : ""}${state.debug ? `<div class="notice">오류 원인: ${escapeHtml(state.debug)}</div>` : ""}`;
+      }
+
+      function typeLabel(type) {
+        if (type === "OX") return "O/X";
+        if (type === "MULTIPLE_CHOICE") return "객관식";
+        return "서술형";
       }
 
       function normalize(value) {
-        return String(value || "").trim().toLowerCase().replace(/\\s+/g, " ");
+        return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
       }
 
       function escapeHtml(value) {
