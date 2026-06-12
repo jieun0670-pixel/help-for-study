@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI PDF Study Helper</title>
+    <style>
+      :root {
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --ink: #172033;
+        --muted: #657084;
+        --line: #dce3ee;
+        --brand: #2563eb;
+        --brand-dark: #1d4ed8;
+        --soft: #eaf1ff;
+        --good: #16803c;
+        --bad: #d13535;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Arial, "Noto Sans KR", sans-serif;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        border-radius: 8px;
+        background: var(--brand);
+        color: white;
+        cursor: pointer;
+        font-weight: 700;
+        padding: 12px 16px;
+      }
+
+      button:hover {
+        background: var(--brand-dark);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      .topbar {
+        align-items: center;
+        background: white;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        padding: 16px clamp(18px, 5vw, 56px);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+
+      .brand {
+        font-size: 20px;
+        font-weight: 800;
+      }
+
+      .stepper {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .main {
+        margin: 0 auto;
+        max-width: 1060px;
+        padding: 34px clamp(16px, 4vw, 42px) 60px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: clamp(22px, 4vw, 38px);
+      }
+
+      h1 {
+        font-size: clamp(30px, 5vw, 52px);
+        line-height: 1.08;
+        margin: 0 0 14px;
+      }
+
+      h2 {
+        margin-top: 28px;
+      }
+
+      .lead {
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.7;
+        margin: 0 0 28px;
+        max-width: 760px;
+      }
+
+      .uploadBox {
+        align-items: center;
+        border: 2px dashed #aab8cf;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        justify-content: center;
+        min-height: 260px;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .uploadButton {
+        display: inline-flex;
+        position: relative;
+      }
+
+      .uploadButton input {
+        inset: 0;
+        opacity: 0;
+        position: absolute;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .error,
+      .success,
+      .notice {
+        border-radius: 8px;
+        margin-top: 16px;
+        padding: 12px 14px;
+        white-space: pre-wrap;
+      }
+
+      .error {
+        background: #fff1f1;
+        border: 1px solid #ffc6c6;
+        color: var(--bad);
+      }
+
+      .success {
+        background: #effaf2;
+        border: 1px solid #bae7c6;
+        color: var(--good);
+      }
+
+      .notice {
+        background: #f2f5fb;
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+
+      .cards {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 24px 0;
+      }
+
+      .difficultyCard {
+        background: white;
+        border: 1px solid var(--line);
+        color: var(--ink);
+        min-height: 180px;
+        padding: 20px;
+        text-align: left;
+      }
+
+      .difficultyCard:hover,
+      .difficultyCard.selected {
+        background: var(--soft);
+        border-color: var(--brand);
+      }
+
+      .difficultyCard strong {
+        display: block;
+        font-size: 22px;
+        margin-bottom: 10px;
+      }
+
+      .questionMeta,
+      .reportGrid,
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .pill {
+        background: var(--soft);
+        border-radius: 999px;
+        color: #1f4da5;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 7px 10px;
+      }
+
+      .questionCard {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin: 24px 0;
+        padding: 24px;
+      }
+
+      .questionText {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.45;
+        margin: 16px 0 18px;
+      }
+
+      .optionGrid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .option {
+        background: white;
+        border: 1px solid var(--line);
+        color: var(--ink);
+        text-align: left;
+      }
+
+      .option.selected {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: white;
+      }
+
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 160px;
+        padding: 14px;
+        resize: vertical;
+        width: 100%;
+      }
+
+      .navRow {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+      }
+
+      .secondary {
+        background: #e8edf5;
+        color: var(--ink);
+      }
+
+      .secondary:hover {
+        background: #d7deea;
+      }
+
+      .stat {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        flex: 1 1 160px;
+        padding: 16px;
+      }
+
+      .stat b {
+        display: block;
+        font-size: 26px;
+        margin-top: 6px;
+      }
+
+      .reviewItem {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-top: 12px;
+        padding: 16px;
+      }
+
+      .reviewItem.correct {
+        border-left: 5px solid var(--good);
+      }
+
+      .reviewItem.wrong {
+        border-left: 5px solid var(--bad);
+      }
+
+      .feedbackList {
+        line-height: 1.7;
+        padding-left: 20px;
+      }
+
+      .spinner {
+        animation: spin 0.8s linear infinite;
+        border: 3px solid #b8c7e6;
+        border-radius: 50%;
+        border-top-color: var(--brand);
+        display: inline-block;
+        height: 18px;
+        margin-right: 8px;
+        vertical-align: middle;
+        width: 18px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 760px) {
+        .topbar,
+        .navRow {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">AI PDF Study Helper</div>
+      <div class="stepper">PDF 업로드 → 난이도 선택 → 문제 풀이 → 결과 리포트</div>
+    </header>
+    <main class="main" id="app"></main>
+
+    <script type="module">
+      import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+
+      const state = {
+        step: "upload",
+        fileName: "",
+        pdfText: "",
+        difficulty: "",
+        questions: [],
+        answers: {},
+        currentIndex: 0,
+        questionStartedAt: Date.now(),
+        elapsedByQuestion: {},
+        report: null,
+        loading: false,
+        status: "",
+        error: "",
+        debug: "",
+        saveMessage: ""
+      };
+
+      const difficultyCopy = {
+        "하": "핵심 개념과 정의 중심의 쉬운 문제를 생성합니다. 처음 복습하는 학생도 풀 수 있게 구성합니다.",
+        "중": "개념 이해와 간단한 응용 중심의 문제를 생성합니다. 단순 암기보다 이해 여부를 확인합니다.",
+        "상": "실전형 문제와 심화 문제 중심으로 생성합니다. 시험 대비용으로 조금 더 깊이 있게 구성합니다."
+      };
+
+      const app = document.querySelector("#app");
+      console.log("AI PDF Study Helper loaded. Browser fallback generator is embedded in index.html.");
+      render();
+
+      function render() {
+        if (state.step === "upload") renderUpload();
+        if (state.step === "difficulty") renderDifficulty();
+        if (state.step === "quiz") renderQuiz();
+        if (state.step === "report") renderReport();
+      }
+
+      function renderUpload() {
+        app.innerHTML = `<section class="panel">
+          <h1>PDF 강의자료를 문제와 리포트로 바꾸세요</h1>
+          <p class="lead">강의자료를 업로드하면 PDF 텍스트를 추출하고, 선택한 난이도에 맞춰 O/X, 객관식, 서술형 문제 17개를 생성합니다.</p>
+          <div class="uploadBox">
+            <label class="uploadButton">
+              <button type="button" ${state.loading ? "disabled" : ""}>${state.loading ? `<span class="spinner"></span>업로드 분석 중` : "PDF 업로드"}</button>
+              <input id="pdfInput" accept="application/pdf,.pdf" type="file" />
+            </label>
+            <span class="muted">${state.fileName ? escapeHtml(state.fileName) : "PDF 파일만 업로드할 수 있습니다."}</span>
+          </div>
+          ${messageHtml()}
+        </section>`;
+        document.querySelector("#pdfInput").addEventListener("change", (event) => handlePdfUpload(event.target.files?.[0]));
+      }
+
+      function renderDifficulty() {
+        app.innerHTML = `<section class="panel">
+          <h1>난이도 선택</h1>
+          <p class="lead">${escapeHtml(state.fileName || "PDF")} 분석이 끝났습니다. 원하는 난이도를 선택하면 문제 생성 버튼을 누를 수 있습니다.</p>
+          <div class="cards">
+            ${Object.entries(difficultyCopy)
+              .map(
+                ([level, text]) =>
+                  `<button class="difficultyCard ${state.difficulty === level ? "selected" : ""}" data-level="${level}"><strong>${level}</strong>${escapeHtml(text)}</button>`
+              )
+              .join("")}
+          </div>
+          <div class="actions">
+            <button id="generateButton" ${!state.difficulty || state.loading ? "disabled" : ""}>${state.loading ? `<span class="spinner"></span>문제 생성 중` : "문제 생성"}</button>
+          </div>
+          ${messageHtml()}
+        </section>`;
+
+        document.querySelectorAll("[data-level]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.difficulty = button.dataset.level;
+            state.error = "";
+            state.debug = "";
+            render();
+          });
+        });
+        document.querySelector("#generateButton")?.addEventListener("click", generateQuestions);
+      }
+
+      function renderQuiz() {
+        const question = state.questions[state.currentIndex];
+        const answeredCount = state.questions.filter((item) => state.answers[item.id]?.trim()).length;
+
+        app.innerHTML = `<section class="panel">
+          <h1>문제 풀이</h1>
+          <p class="lead">한 번에 하나씩 풀어 보세요. 선택한 답안은 화면 이동 후에도 유지됩니다.</p>
+          ${messageHtml()}
+          <div class="questionCard">
+            <div class="questionMeta">
+              <span class="pill">${state.currentIndex + 1} / ${state.questions.length}</span>
+              <span class="pill">${typeLabel(question.type)}</span>
+              <span class="pill">${escapeHtml(question.concept)}</span>
+              <span class="pill">난이도 ${escapeHtml(question.difficulty)}</span>
+            </div>
+            <div class="questionText">${escapeHtml(question.prompt)}</div>
+            ${
+              question.type === "SHORT_ANSWER"
+                ? `<textarea id="essayAnswer" placeholder="답안을 입력하세요.">${escapeHtml(state.answers[question.id] || "")}</textarea>`
+                : `<div class="optionGrid">${question.choices
+                    .map((choice) => `<button class="option ${state.answers[question.id] === choice ? "selected" : ""}" data-choice="${escapeAttr(choice)}">${escapeHtml(choice)}</button>`)
+                    .join("")}</div>`
+            }
+          </div>
+          <div class="navRow">
+            <div class="actions">
+              <button class="secondary" id="prevButton" ${state.currentIndex === 0 ? "disabled" : ""}>이전</button>
+              <button class="secondary" id="nextButton" ${state.currentIndex === state.questions.length - 1 ? "disabled" : ""}>다음</button>
+            </div>
+            <div class="actions">
+              <span class="muted">답변 완료 ${answeredCount}/${state.questions.length}</span>
+              <button id="submitButton" ${state.loading ? "disabled" : ""}>${state.loading ? `<span class="spinner"></span>채점 중` : "채점하기"}</button>
+            </div>
+          </div>
+        </section>`;
+
+        document.querySelectorAll("[data-choice]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.answers[question.id] = button.dataset.choice;
+            state.error = "";
+            render();
+          });
+        });
+        document.querySelector("#essayAnswer")?.addEventListener("input", (event) => {
+          state.answers[question.id] = event.target.value;
+        });
+        document.querySelector("#prevButton").addEventListener("click", () => moveQuestion(-1));
+        document.querySelector("#nextButton").addEventListener("click", () => moveQuestion(1));
+        document.querySelector("#submitButton").addEventListener("click", submitQuiz);
+      }
+
+      function renderReport() {
+        const report = state.report;
+        app.innerHTML = `<section class="panel">
+          <h1>결과 리포트</h1>
+          <div class="reportGrid">
+            <div class="stat">총점<b>${report.score}점</b></div>
+            <div class="stat">정답<b>${report.correctCount}개</b></div>
+            <div class="stat">오답<b>${report.wrongCount}개</b></div>
+            <div class="stat">풀이 시간<b>${Math.floor(report.totalElapsedSeconds / 60)}분 ${report.totalElapsedSeconds % 60}초</b></div>
+          </div>
+          <h2>취약 개념</h2>
+          <p>${report.weakConcepts.length ? report.weakConcepts.map(escapeHtml).join(", ") : "뚜렷한 취약 개념이 없습니다."}</p>
+          <h2>학습 피드백</h2>
+          <ul class="feedbackList">${report.feedback.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+          <div class="actions">
+            <button id="downloadQuestions">문제 다운로드</button>
+            <button id="downloadReport">리포트 다운로드</button>
+            <button class="secondary" id="restartButton">새 PDF로 시작</button>
+          </div>
+          ${state.saveMessage ? `<div class="${state.saveMessage.includes("실패") ? "error" : "success"}">${escapeHtml(state.saveMessage)}</div>` : ""}
+          ${messageHtml()}
+          <h2>문제별 해설</h2>
+          ${report.results
+            .map((result, index) => {
+              const question = report.questions.find((item) => item.id === result.questionId);
+              return `<article class="reviewItem ${result.isCorrect ? "correct" : "wrong"}">
+                <strong>${index + 1}. ${result.isCorrect ? "정답" : "오답"} · ${result.earnedPoints}/${result.maxPoints}점 · ${result.elapsedSeconds}초</strong>
+                <p>${escapeHtml(question.prompt)}</p>
+                <p>내 답: ${escapeHtml(report.answers[result.questionId] || "-")}</p>
+                <p>정답: ${escapeHtml(question.answer)}</p>
+                <p>해설: ${escapeHtml(question.explanation)}</p>
+                <p>분석: ${escapeHtml(result.analysis)}</p>
+                ${result.essayFeedback ? `<p>서술형 피드백: ${escapeHtml(result.essayFeedback)}</p>` : ""}
+              </article>`;
+            })
+            .join("")}
+        </section>`;
+
+        document.querySelector("#downloadQuestions").addEventListener("click", () => downloadText("questions.txt", questionsToText(report.questions)));
+        document.querySelector("#downloadReport").addEventListener("click", () => downloadText("study-report.txt", reportToText(report)));
+        document.querySelector("#restartButton").addEventListener("click", resetApp);
+      }
+
+      async function handlePdfUpload(file) {
+        state.error = "";
+        state.status = "";
+        state.debug = "";
+
+        if (!file) return;
+        if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+          setVisibleError("PDF 파일만 업로드할 수 있어요. 강의자료 PDF를 다시 선택해 주세요.", "파일 형식 검증 실패");
+          render();
+          return;
+        }
+
+        state.loading = true;
+        state.fileName = file.name;
+        render();
+
+        try {
+          const text = await extractPdfText(file);
+          state.pdfText = text.trim() || `${file.name} 파일에서 텍스트를 추출하지 못했습니다.`;
+          state.status = "PDF 분석이 완료되었습니다. 이제 난이도를 선택해 주세요.";
+          state.step = "difficulty";
+        } catch (error) {
+          console.error("PDF 분석 실패:", error);
+          state.pdfText = `${file.name} 파일 텍스트 추출 실패`;
+          state.status = "PDF 텍스트 추출에 실패했지만 샘플 문제 생성으로 계속 진행할 수 있습니다.";
+          state.debug = `PDF 분석 오류: ${error.message}`;
+          state.step = "difficulty";
+        } finally {
+          state.loading = false;
+          render();
+        }
+      }
+
+      async function extractPdfText(file) {
+        const buffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+        const pages = [];
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber);
+          const content = await page.getTextContent();
+          pages.push(content.items.map((item) => item.str).join(" "));
+        }
+
+        return pages.join("\n");
+      }
+
+      async function generateQuestions() {
+        state.loading = true;
+        state.error = "";
+        state.status = "";
+        state.debug = "";
+        render();
+
+        const payload = {
+          text: state.pdfText,
+          difficulty: state.difficulty
+        };
+        console.log("문제 생성 요청 시작:", payload);
+
+        try {
+          const response = await fetch("/api/generate-questions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          const rawText = await response.text();
+          console.log("/api/generate-questions raw response:", {
+            ok: response.ok,
+            status: response.status,
+            body: rawText
+          });
+
+          let data;
+          try {
+            data = JSON.parse(rawText);
+          } catch (parseError) {
+            throw new Error(`API 응답을 JSON으로 읽지 못했습니다. 상태: ${response.status}, 응답: ${rawText.slice(0, 300)}`);
+          }
+
+          console.log("/api/generate-questions parsed response:", data);
+
+          if (!response.ok) {
+            throw new Error(data.error || `API 상태 오류: ${response.status}`);
+          }
+
+          if (!Array.isArray(data.questions) || data.questions.length !== 17) {
+            throw new Error(`API가 17개 문제가 아닌 값을 반환했습니다. 받은 개수: ${data.questions?.length || 0}`);
+          }
+
+          enterQuiz(data.questions, data.source === "sample" ? data.warning || "샘플 문제로 대체 생성했습니다." : "AI가 PDF 기반 문제를 생성했습니다.");
+        } catch (error) {
+          console.error("문제 생성 요청 실패, 샘플 문제로 대체합니다:", error);
+          const fallbackQuestions = makeFallbackQuestions(state.difficulty || "중", state.pdfText);
+          enterQuiz(fallbackQuestions, "문제 생성 API 호출에 실패해 샘플 문제 17개로 대체했습니다.", `문제 생성 오류: ${error.message}`);
+        } finally {
+          state.loading = false;
+          render();
+        }
+      }
+
+      function enterQuiz(questions, statusMessage, debugMessage = "") {
+        state.questions = questions;
+        state.answers = {};
+        state.elapsedByQuestion = {};
+        state.currentIndex = 0;
+        state.questionStartedAt = Date.now();
+        state.step = "quiz";
+        state.status = statusMessage;
+        state.debug = debugMessage;
+      }
+
+      function recordElapsed(questionId) {
+        state.elapsedByQuestion[questionId] = (state.elapsedByQuestion[questionId] || 0) + Math.round((Date.now() - state.questionStartedAt) / 1000);
+      }
+
+      function moveQuestion(direction) {
+        const question = state.questions[state.currentIndex];
+        if (question.type === "SHORT_ANSWER") {
+          state.answers[question.id] = document.querySelector("#essayAnswer")?.value || "";
+        }
+        recordElapsed(question.id);
+        state.currentIndex = Math.min(state.questions.length - 1, Math.max(0, state.currentIndex + direction));
+        state.questionStartedAt = Date.now();
+        state.error = "";
+        render();
+      }
+
+      async function submitQuiz() {
+        const question = state.questions[state.currentIndex];
+        if (question.type === "SHORT_ANSWER") {
+          state.answers[question.id] = document.querySelector("#essayAnswer")?.value || "";
+        }
+
+        const unanswered = state.questions.filter((item) => !state.answers[item.id]?.trim());
+        if (unanswered.length) {
+          setVisibleError(`아직 답하지 않은 문제가 ${unanswered.length}개 있습니다. 모든 문제에 답한 뒤 채점해 주세요.`, "미응답 문항 존재");
+          render();
+          return;
+        }
+
+        recordElapsed(question.id);
+        state.loading = true;
+        state.error = "";
+        state.debug = "";
+        render();
+
+        const results = [];
+        for (const item of state.questions) {
+          const answer = state.answers[item.id] || "";
+          const elapsedSeconds = Math.max(1, state.elapsedByQuestion[item.id] || 1);
+
+          if (item.type === "SHORT_ANSWER") {
+            const grade = await gradeEssay(item, answer);
+            results.push({
+              questionId: item.id,
+              isCorrect: grade.isCorrect,
+              earnedPoints: grade.score,
+              maxPoints: 10,
+              elapsedSeconds,
+              analysis: analyzeQuestion(elapsedSeconds, grade.isCorrect),
+              essayFeedback: grade.feedback
+            });
+          } else {
+            const correct = normalize(answer) === normalize(item.answer);
+            results.push({
+              questionId: item.id,
+              isCorrect: correct,
+              earnedPoints: correct ? 5 : 0,
+              maxPoints: 5,
+              elapsedSeconds,
+              analysis: analyzeQuestion(elapsedSeconds, correct)
+            });
+          }
+        }
+
+        const earned = results.reduce((sum, item) => sum + item.earnedPoints, 0);
+        const max = results.reduce((sum, item) => sum + item.maxPoints, 0);
+        const weakConcepts = getWeakConcepts(results);
+
+        state.report = {
+          id: crypto.randomUUID(),
+          createdAt: new Date().toLocaleString("ko-KR"),
+          difficulty: state.difficulty,
+          score: Math.round((earned / max) * 100),
+          correctCount: results.filter((item) => item.isCorrect).length,
+          wrongCount: results.filter((item) => !item.isCorrect).length,
+          totalElapsedSeconds: results.reduce((sum, item) => sum + item.elapsedSeconds, 0),
+          weakConcepts,
+          feedback: makeFeedback(weakConcepts, results),
+          questions: state.questions,
+          answers: state.answers,
+          results
+        };
+
+        state.step = "report";
+        state.loading = false;
+        render();
+        await saveResult(state.report);
+      }
+
+      async function gradeEssay(question, answer) {
+        try {
+          const response = await fetch("/api/grade-essay", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question, answer })
+          });
+          if (!response.ok) throw new Error(`서술형 채점 API 오류: ${response.status}`);
+          return await response.json();
+        } catch (error) {
+          console.error("서술형 채점 실패, 키워드 채점으로 대체합니다:", error);
+          state.debug = `서술형 채점 오류: ${error.message}`;
+          return keywordFallbackGrade(question, answer);
+        }
+      }
+
+      async function saveResult(report) {
+        state.saveMessage = "Firebase Realtime Database에 결과를 저장하는 중입니다.";
+        render();
+
+        try {
+          const response = await fetch("/api/save-result", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(report)
+          });
+          const data = await response.json();
+          if (!response.ok || !data.ok) throw new Error(data.error || `저장 API 오류: ${response.status}`);
+          state.saveMessage = "Firebase Realtime Database에 결과가 저장되었습니다.";
+        } catch (error) {
+          console.error("Firebase 저장 실패:", error);
+          state.saveMessage = "Firebase 저장에 실패했습니다. 리포트 다운로드는 계속 사용할 수 있습니다.";
+          state.debug = `Firebase 저장 오류: ${error.message}`;
+        }
+
+        render();
+      }
+
+      function getWeakConcepts(results) {
+        const counts = {};
+        for (const result of results) {
+          if (!result.isCorrect) {
+            const question = state.questions.find((item) => item.id === result.questionId);
+            counts[question.concept] = (counts[question.concept] || 0) + 1;
+          }
+        }
+        return Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([concept]) => concept);
+      }
+
+      function analyzeQuestion(elapsedSeconds, correct) {
+        const slow = elapsedSeconds >= 75;
+        if (!correct && slow) return "개념 이해 부족 가능성";
+        if (!correct && !slow) return "실수 또는 오개념 가능성";
+        if (correct && slow) return "이해는 했지만 숙련도 부족 가능성";
+        return "안정적으로 해결한 문항";
+      }
+
+      function makeFeedback(weakConcepts, results) {
+        const feedback = [];
+        if (weakConcepts.length) feedback.push(`${weakConcepts.join(", ")} 개념에서 오답이 많았습니다. 해당 부분을 먼저 다시 읽고 예시 문제를 풀어 보세요.`);
+        if (results.some((item) => item.analysis === "개념 이해 부족 가능성")) feedback.push("시간을 오래 쓰고 틀린 문항은 개념의 조건과 예외를 다시 정리하는 것이 좋습니다.");
+        if (results.some((item) => item.analysis === "실수 또는 오개념 가능성")) feedback.push("빠르게 틀린 문항은 문제 요구사항을 표시하며 읽는 연습이 도움이 됩니다.");
+        if (results.some((item) => item.analysis === "이해는 했지만 숙련도 부족 가능성")) feedback.push("맞혔지만 오래 걸린 문항은 같은 개념의 유사 문제를 반복해 풀이 속도를 높여 보세요.");
+        if (!feedback.length) feedback.push("전반적으로 안정적인 이해를 보였습니다. 상위 난이도 문제로 개념 적용력을 확장해 보세요.");
+        return feedback;
+      }
+
+      function questionsToText(questions) {
+        return questions
+          .map((question, index) => {
+            const choices = question.choices.length ? `\n보기: ${question.choices.join(" / ")}` : "";
+            return `${index + 1}. [${typeLabel(question.type)}] ${question.prompt}${choices}\n정답: ${question.answer}\n해설: ${question.explanation}\n관련 개념: ${question.concept}\n난이도: ${question.difficulty}`;
+          })
+          .join("\n\n");
+      }
+
+      function reportToText(report) {
+        const details = report.results
+          .map((result, index) => {
+            const question = report.questions.find((item) => item.id === result.questionId);
+            return `${index + 1}. ${question.prompt}\n내 답: ${report.answers[result.questionId] || "-"}\n정답: ${question.answer}\n결과: ${result.isCorrect ? "정답" : "오답"} (${result.earnedPoints}/${result.maxPoints})\n분석: ${result.analysis}\n해설: ${question.explanation}`;
+          })
+          .join("\n\n");
+
+        return `AI PDF 학습 리포트
+생성일: ${report.createdAt}
+난이도: ${report.difficulty}
+총점: ${report.score}
+정답: ${report.correctCount}
+오답: ${report.wrongCount}
+전체 풀이 시간: ${report.totalElapsedSeconds}초
+취약 개념: ${report.weakConcepts.length ? report.weakConcepts.join(", ") : "없음"}
+
+학습 피드백
+${report.feedback.map((item) => `- ${item}`).join("\n")}
+
+문제별 결과
+${details}
+`;
+      }
+
+      function downloadText(filename, content) {
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function resetApp() {
+        Object.assign(state, {
+          step: "upload",
+          fileName: "",
+          pdfText: "",
+          difficulty: "",
+          questions: [],
+          answers: {},
+          currentIndex: 0,
+          questionStartedAt: Date.now(),
+          elapsedByQuestion: {},
+          report: null,
+          loading: false,
+          status: "",
+          error: "",
+          debug: "",
+          saveMessage: ""
+        });
+        render();
+      }
+
+      function makeFallbackQuestions(difficulty, sourceText) {
+        if (window.SampleQuestions?.makeSampleQuestions) {
+          return window.SampleQuestions.makeSampleQuestions(difficulty, sourceText);
+        }
+
+        console.error("sampleQuestions.js가 로드되지 않아 index.html 내부 샘플 생성기를 사용합니다.");
+        const concepts = ["핵심 개념", "정의와 특징", "원리", "비교", "적용", "절차", "사례", "한계", "자료 해석", "종합 이해", "실전 판단", "개념 연결"];
+        const topic = String(sourceText || "").replace(/\s+/g, " ").trim().slice(0, 28) || "업로드한 강의자료";
+        const questions = [];
+
+        for (let index = 0; index < 5; index += 1) {
+          questions.push({
+            id: `OX-${index + 1}`,
+            type: "OX",
+            prompt: `${topic} 학습에서 ${concepts[index]}을 설명할 때, 근거 없이 결론만 암기하는 것은 충분한 복습 전략이다.`,
+            choices: ["O", "X"],
+            answer: index % 2 === 0 ? "X" : "O",
+            explanation: "핵심 개념은 정의, 근거, 예시를 함께 연결해야 오래 기억되고 응용할 수 있습니다.",
+            concept: concepts[index],
+            difficulty,
+            keywords: [concepts[index], "정의", "근거"]
+          });
+        }
+
+        for (let index = 0; index < 10; index += 1) {
+          const concept = concepts[(index + 2) % concepts.length];
+          const baseChoices = [
+            `${concept}을 정의, 조건, 예시와 함께 설명한다.`,
+            "본문의 모든 문장을 순서대로 외우는 데만 집중한다.",
+            "관련 없는 사례를 중심으로 결론을 만든다.",
+            "용어의 이름만 보고 세부 의미를 생략한다."
+          ];
+          questions.push({
+            id: `MC-${index + 1}`,
+            type: "MULTIPLE_CHOICE",
+            prompt: `개념 이해와 응용을 확인하기 위한 ${concept} 복습 방법으로 가장 적절한 것은 무엇인가?`,
+            choices: baseChoices.slice(index % 4).concat(baseChoices.slice(0, index % 4)),
+            answer: baseChoices[0],
+            explanation: `${concept}은 정의뿐 아니라 조건, 예시, 반례를 함께 확인해야 실제 문제에서 활용할 수 있습니다.`,
+            concept,
+            difficulty,
+            keywords: [concept, "예시", "조건"]
+          });
+        }
+
+        for (let index = 0; index < 2; index += 1) {
+          const concept = concepts[(index + 8) % concepts.length];
+          questions.push({
+            id: `SA-${index + 1}`,
+            type: "SHORT_ANSWER",
+            prompt: `${topic}에서 ${concept}이 중요한 이유를 핵심 용어 2개 이상을 포함해 설명하세요.`,
+            choices: [],
+            answer: `${concept}은 핵심 개념을 실제 사례에 적용하고 조건과 한계를 판단하는 기준이 되기 때문에 중요합니다.`,
+            explanation: `좋은 답안은 ${concept}, 조건, 사례, 한계 중 여러 요소를 연결해 설명합니다.`,
+            concept,
+            difficulty,
+            keywords: [concept, "조건", "사례", "한계"]
+          });
+        }
+
+        return questions;
+      }
+
+      function keywordFallbackGrade(question, answer) {
+        if (window.SampleQuestions?.keywordEssayGrade) {
+          return window.SampleQuestions.keywordEssayGrade(question, answer);
+        }
+
+        const keywords = question.keywords && question.keywords.length ? question.keywords : question.answer.split(/\s+/).slice(0, 4);
+        const normalizedAnswer = normalize(answer);
+        const hits = keywords.filter((keyword) => normalizedAnswer.includes(normalize(keyword))).length;
+        const score = Math.min(10, Math.round((hits / Math.max(1, keywords.length)) * 10));
+
+        return {
+          score,
+          isCorrect: score >= 6,
+          feedback: score >= 6 ? "핵심 키워드가 충분히 포함되었습니다." : "핵심 키워드와 근거가 부족합니다."
+        };
+      }
+
+      function setVisibleError(message, debug) {
+        state.error = message;
+        state.debug = debug || "";
+        if (debug) console.error(debug);
+      }
+
+      function messageHtml() {
+        return `${state.status ? `<div class="success">${escapeHtml(state.status)}</div>` : ""}${state.error ? `<div class="error">${escapeHtml(state.error)}</div>` : ""}${state.debug ? `<div class="notice">오류 원인: ${escapeHtml(state.debug)}</div>` : ""}`;
+      }
+
+      function typeLabel(type) {
+        if (type === "OX") return "O/X";
+        if (type === "MULTIPLE_CHOICE") return "객관식";
+        return "서술형";
+      }
+
+      function normalize(value) {
+        return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+      }
+
+      function escapeHtml(value) {
+        return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replace(/`/g, "&#096;");
+      }
+    </script>
+  </body>
+</html>
