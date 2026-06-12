@@ -5,19 +5,24 @@ module.exports = async function handler(req, res) {
 
   if (req.method !== "POST") {
     return res.status(200).json({
+      ok: true,
       questions: makeSampleQuestions("중", ""),
       source: "sample",
+      fallback: true,
       warning: "POST가 아닌 요청이라 샘플 문제를 반환했습니다."
     });
   }
 
-  const { text = "", difficulty = "중" } = req.body || {};
+  const body = typeof req.body === "string" ? safeJsonParse(req.body) : req.body || {};
+  const { text = "", difficulty = "중" } = body;
   const safeDifficulty = ["하", "중", "상"].includes(difficulty) ? difficulty : "중";
 
   if (!process.env.OPENAI_API_KEY) {
     return res.status(200).json({
+      ok: true,
       questions: makeSampleQuestions(safeDifficulty, text),
       source: "sample",
+      fallback: true,
       warning: "OPENAI_API_KEY가 없어 샘플 문제를 반환했습니다."
     });
   }
@@ -29,18 +34,31 @@ module.exports = async function handler(req, res) {
     }
 
     return res.status(200).json({
+      ok: true,
       questions,
-      source: "openai"
+      source: "openai",
+      fallback: false
     });
   } catch (error) {
     console.error("generate-questions fallback:", error);
     return res.status(200).json({
+      ok: true,
       questions: makeSampleQuestions(safeDifficulty, text),
       source: "sample",
+      fallback: true,
       warning: `AI 문제 생성 실패로 샘플 문제를 반환했습니다: ${error.message}`
     });
   }
 };
+
+function safeJsonParse(value) {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    console.error("generate-questions body parse failed:", error);
+    return {};
+  }
+}
 
 async function generateWithOpenAI(text, difficulty) {
   const response = await fetch("https://api.openai.com/v1/responses", {
